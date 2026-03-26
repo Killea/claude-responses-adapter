@@ -99,7 +99,7 @@ export class UI {
             dim('     ┌──────────────────────────┐'),
             dim('     │ ') + brand('CLAUDE RESPONSES') + dim('     ├──┐'),
             dim('     │ ') + brand('ADAPTER') + dim('               │▓▓│'),
-            dim('     │ ') + dim('Claude → Responses bridge') + dim(' ├──┘'),
+            dim('     │ ') + dim('Claude-compatible bridge') + dim('  ├──┘'),
             dim('     └──────────────────────────┘'),
             '',
         ];

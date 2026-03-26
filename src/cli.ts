@@ -27,7 +27,7 @@ program
     .option('--no-claude-settings', 'Skip updating Claude Code settings files')
     .action(async (options) => {
         UI.banner();
-        UI.header('Bridge Claude-compatible clients to Responses API providers');
+        UI.header('Run a local bridge from Claude-compatible clients to Responses API backends');
 
         try {
             // Initialize metadata (creates metadata.json on first run)
@@ -49,7 +49,7 @@ program
                 config = await promptForConfiguration();
                 saveConfig(config);
                 console.log(`\x1b[2m✔\x1b[0m Tool Format: ${UI.dim(`[${config.toolFormat?.toUpperCase() || 'NATIVE'}]`)}`);
-                UI.info('Creating Responses API bridge...');
+                UI.info('Creating local Responses bridge...');
             } else if (config.toolFormat === undefined) {
                 // Existing config missing toolFormat - prompt only for that
                 UI.log(''); // Spacing
@@ -88,7 +88,7 @@ program
             }
 
             UI.success('claude-responses-adapter is ready!');
-            UI.info('Open a new terminal tab and run Claude Code against this bridge.');
+            UI.info('Open a new terminal tab and run your Claude-compatible client against this bridge.');
             UI.experimentFlags(config);
             UI.hint('Press Ctrl+C to stop the proxy server.');
 

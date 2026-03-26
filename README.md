@@ -4,7 +4,7 @@
 
 ![claude-responses-adapter banner](assets/banner.png)
 
-**Bridge Claude-compatible clients to Responses API providers**
+**A protocol bridge from Claude-compatible clients to Responses API backends**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/node/v/claude-responses-adapter.svg)](https://nodejs.org)
@@ -21,23 +21,30 @@
 
 ## Overview
 
-`claude-responses-adapter` is a local proxy that accepts Claude / Anthropic-compatible requests and forwards them to OpenAI-compatible or Responses-style providers.
+`claude-responses-adapter` is a local protocol bridge. It accepts Claude / Anthropic-compatible traffic on one side and forwards translated requests to Responses API or OpenAI-compatible backends on the other.
 
-Its purpose is narrower than the original `claude-adapter` project: this repository is focused on protocol bridging for Claude-compatible clients, especially where request/response shape, streaming, and tool calling need translation before reaching the upstream provider.
+This repository should not be read as a drop-in continuation of the original `claude-adapter` project. It started from that codebase, but the project goal here is more specific: run Claude-compatible clients against a different upstream protocol surface, while preserving the parts that matter in practice such as streaming, tool use, and model aliasing.
 
-### Project origin
+> **Upstream attribution**
+> This project is based on [shantoislamdev/claude-adapter](https://github.com/shantoislamdev/claude-adapter). That repository provided the initial foundation, but this codebase has since diverged substantially in protocol focus, product framing, and runtime workflow.
 
-This project is based on [shantoislamdev/claude-adapter](https://github.com/shantoislamdev/claude-adapter), but it has since diverged substantially.
+### What this project is
 
-- The upstream project provided the original starting point and structure.
-- This repository now targets a different operational goal: bridging Claude-compatible clients to Responses API providers.
-- Protocol handling, startup UX, and project messaging have diverged enough that this repo should be treated as a separate project.
+- A local bridge for **Claude-compatible clients**
+- A translator for **request / response / streaming / tool-calling** semantics
+- A way to point Claude-oriented tooling at **Responses-style upstream providers**
 
-### How this differs from the upstream project
+### What this project is not
 
-- **Different purpose** — this repo is positioned as a Responses API bridge, not a generic “adapt any model for Claude Code” layer.
-- **Different protocol emphasis** — the implementation is centered on translating Claude-compatible traffic into the upstream provider formats this project needs.
-- **Different runtime workflow** — the CLI is optimized around configuring and running a local bridge for Claude-compatible clients.
+- Not the upstream `claude-adapter` repository
+- Not a generic “adapt any model for Claude Code” compatibility layer
+- Not primarily positioned around preserving the upstream product branding
+
+### How it differs from the upstream project
+
+- **Narrower purpose** — this repo is centered on Claude-compatible to Responses-style protocol bridging.
+- **Different protocol story** — the implementation is optimized around the translation paths this bridge needs, rather than broad model-adaptation messaging.
+- **Different operator experience** — the CLI and docs are framed around running a local bridge process and wiring Claude-compatible clients into it.
 
 ### Key features
 
@@ -51,7 +58,7 @@ This project is based on [shantoislamdev/claude-adapter](https://github.com/shan
 
 ## Architecture
 
-The adapter runs as a local HTTP server between a Claude-compatible client and an upstream provider.
+The adapter runs as a local HTTP bridge between a Claude-compatible client and an upstream provider.
 
 ```
 ┌────────────────────┐      ┌──────────────────────────┐      ┌────────────────────────────┐
@@ -90,7 +97,7 @@ npm install -g claude-responses-adapter
    - **API key**
    - **Model mapping** for `opus`, `sonnet`, and `haiku`
 
-3. The adapter starts a local bridge server and, unless disabled, updates Claude settings to point to that local endpoint.
+3. The adapter starts a local bridge server and, unless disabled, updates Claude settings so Claude-compatible tooling targets that local endpoint.
 
 ---
 
