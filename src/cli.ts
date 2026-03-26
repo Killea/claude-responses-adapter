@@ -18,7 +18,7 @@ const program = new Command();
 
 program
     .name('claude-responses-adapter')
-    .description('Proxy adapter to use Responses API providers with Claude-compatible clients')
+    .description('Responses API proxy for Claude-compatible clients')
     .version(version);
 
 program
@@ -27,7 +27,7 @@ program
     .option('--no-claude-settings', 'Skip updating Claude Code settings files')
     .action(async (options) => {
         UI.banner();
-        UI.header('Adapt Responses providers for Claude clients');
+        UI.header('Bridge Claude-compatible clients to Responses API providers');
 
         try {
             // Initialize metadata (creates metadata.json on first run)
@@ -36,7 +36,7 @@ program
             // Step 1: Update ~/.claude.json for onboarding skip (if enabled)
             if (options.claudeSettings) {
                 updateClaudeJson();
-                UI.statusDone(true, 'Initialized Claude Responses Adapter');
+                UI.statusDone(true, 'Initialized claude-responses-adapter');
             } else {
                 UI.info('Skipping Claude settings update (--no-claude-settings)');
             }
@@ -49,7 +49,7 @@ program
                 config = await promptForConfiguration();
                 saveConfig(config);
                 console.log(`\x1b[2m✔\x1b[0m Tool Format: ${UI.dim(`[${config.toolFormat?.toUpperCase() || 'NATIVE'}]`)}`);
-                UI.info('Creating Claude Responses Adapter API...');
+                UI.info('Creating Responses API bridge...');
             } else if (config.toolFormat === undefined) {
                 // Existing config missing toolFormat - prompt only for that
                 UI.log(''); // Spacing
@@ -69,7 +69,7 @@ program
 
             const server = createServer(config);
             const proxyUrl = await server.start(port);
-            UI.statusDone(true, `Claude Responses Adapter running at ${UI.newUrl(proxyUrl)}`);
+            UI.statusDone(true, `Responses API bridge running at ${UI.newUrl(proxyUrl)}`);
 
             // Step 4: Update Claude Code settings (if enabled)
             if (options.claudeSettings) {
@@ -87,8 +87,8 @@ program
                 UI.hint(`Set ANTHROPIC_BASE_URL=${proxyUrl} in your Claude Code settings`);
             }
 
-            UI.success('Claude Responses Adapter is ready!');
-            UI.info('Open a new terminal tab and run Claude Code.');
+            UI.success('claude-responses-adapter is ready!');
+            UI.info('Open a new terminal tab and run Claude Code against this bridge.');
             UI.experimentFlags(config);
             UI.hint('Press Ctrl+C to stop the proxy server.');
 
@@ -104,7 +104,7 @@ program
             process.on('SIGINT', async () => {
                 UI.log('');
                 await server.stop();
-                UI.success('Claude Responses Adapter stopped');
+                UI.success('claude-responses-adapter stopped');
                 process.exit(0);
             });
 

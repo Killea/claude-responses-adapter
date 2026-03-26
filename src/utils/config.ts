@@ -8,7 +8,7 @@ const CONFIG_DIR = path.join(os.homedir(), '.claude-responses-adapter');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
 /**
- * Load configuration from ~/.claude-adapter/config.json
+ * Load configuration from ~/.claude-responses-adapter/config.json
  */
 export function loadConfig(): AdapterConfig | null {
     try {
@@ -23,7 +23,7 @@ export function loadConfig(): AdapterConfig | null {
 }
 
 /**
- * Save configuration to ~/.claude-adapter/config.json
+ * Save configuration to ~/.claude-responses-adapter/config.json
  */
 export function saveConfig(config: AdapterConfig): void {
     // Ensure directory exists

@@ -1,35 +1,39 @@
 # API Reference
 
-Complete API documentation for **Claude Adapter** — *Adapt any model for Claude Code*.
+API documentation for **claude-responses-adapter**.
+
+This project exposes a Claude-compatible surface area and bridges requests to an upstream OpenAI-compatible / Responses-style provider.
 
 ## Endpoints
 
 ### POST /v1/messages
 
-The main API endpoint that accepts Anthropic Messages API requests and proxies them to an OpenAI-compatible backend.
+Primary endpoint for Claude / Anthropic-compatible message requests.
 
-**Request Headers:**
-```
+The server accepts Claude-compatible request payloads, transforms them into the configured upstream provider format, and translates the upstream response back into Claude-compatible output.
+
+**Request headers:**
+```http
 Content-Type: application/json
 ```
 
-**Request Body:**
+**Request body:**
 ```typescript
 {
-  model: string;           // Required: Model name (passed through directly)
-  max_tokens: number;      // Required: Maximum tokens in response
-  messages: Message[];     // Required: Array of conversation messages
-  system?: string;         // Optional: System prompt
-  temperature?: number;    // Optional: 0-1, sampling temperature
-  top_p?: number;          // Optional: 0-1, nucleus sampling
-  stream?: boolean;        // Optional: Enable streaming responses
-  stop_sequences?: string[]; // Optional: Stop sequences
-  tools?: Tool[];          // Optional: Tool definitions
-  tool_choice?: ToolChoice; // Optional: Tool selection preference
+  model: string;
+  max_tokens: number;
+  messages: Message[];
+  system?: string;
+  temperature?: number;
+  top_p?: number;
+  stream?: boolean;
+  stop_sequences?: string[];
+  tools?: Tool[];
+  tool_choice?: ToolChoice;
 }
 ```
 
-**Message Format:**
+**Message format:**
 ```typescript
 {
   role: 'user' | 'assistant';
@@ -37,7 +41,7 @@ Content-Type: application/json
 }
 ```
 
-**Response (Non-streaming):**
+**Response (non-streaming):**
 ```typescript
 {
   id: string;
@@ -54,14 +58,14 @@ Content-Type: application/json
 }
 ```
 
-**Response (Streaming):**
-Server-Sent Events (SSE) with the following event types:
-- `message_start` - Initial message metadata
-- `content_block_start` - Start of a content block
-- `content_block_delta` - Content update
-- `content_block_stop` - End of a content block
-- `message_delta` - Final message metadata with stop_reason
-- `message_stop` - Stream complete
+**Response (streaming):**
+Server-Sent Events (SSE) with event types such as:
+- `message_start`
+- `content_block_start`
+- `content_block_delta`
+- `content_block_stop`
+- `message_delta`
+- `message_stop`
 
 ---
 
@@ -73,27 +77,27 @@ Health check endpoint.
 ```json
 {
   "status": "ok",
-  "adapter": "claude-adapter"
+  "adapter": "claude-responses-adapter"
 }
 ```
 
 ---
 
-## Converter Functions
+## Converter functions
 
 ### convertRequestToOpenAI
 
-Converts an Anthropic Messages API request to OpenAI Chat Completions format.
+Converts a Claude / Anthropic-compatible message request into the upstream OpenAI-compatible request format used by this bridge.
 
 ```typescript
-import { convertRequestToOpenAI } from 'claude-adapter';
+import { convertRequestToOpenAI } from 'claude-responses-adapter';
 
-const openaiRequest = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+const upstreamRequest = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
 ```
 
 **Parameters:**
-- `anthropicRequest: AnthropicMessageRequest` - The incoming request
-- `targetModel: string` - The OpenAI model to use
+- `anthropicRequest: AnthropicMessageRequest`
+- `targetModel: string`
 
 **Returns:** `OpenAIChatRequest`
 
@@ -101,17 +105,17 @@ const openaiRequest = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
 
 ### convertResponseToAnthropic
 
-Converts an OpenAI Chat Completion response to Anthropic format.
+Converts an upstream provider response into Claude-compatible output.
 
 ```typescript
-import { convertResponseToAnthropic } from 'claude-adapter';
+import { convertResponseToAnthropic } from 'claude-responses-adapter';
 
-const anthropicResponse = convertResponseToAnthropic(openaiResponse, 'claude-4-opus');
+const anthropicResponse = convertResponseToAnthropic(upstreamResponse, 'claude-4-opus');
 ```
 
 **Parameters:**
-- `openaiResponse: OpenAIChatResponse` - The OpenAI response
-- `originalModelRequested: string` - Model name to include in response
+- `openaiResponse: OpenAIChatResponse`
+- `originalModelRequested: string`
 
 **Returns:** `AnthropicMessageResponse`
 
@@ -119,19 +123,19 @@ const anthropicResponse = convertResponseToAnthropic(openaiResponse, 'claude-4-o
 
 ### streamOpenAIToAnthropic
 
-Transforms an OpenAI streaming response to Anthropic SSE format.
+Transforms an upstream streaming response into Claude-compatible SSE output.
 
 ```typescript
-import { streamOpenAIToAnthropic } from 'claude-adapter';
+import { streamOpenAIToAnthropic } from 'claude-responses-adapter';
 
-await streamOpenAIToAnthropic(openaiStream, fastifyReply, 'claude-4-opus');
+await streamOpenAIToAnthropic(upstreamStream, fastifyReply, 'claude-4-opus');
 ```
 
 ---
 
-## Error Responses
+## Error responses
 
-All errors follow Anthropic's error format:
+Errors follow Anthropic-compatible error formatting:
 
 ```json
 {
@@ -142,7 +146,6 @@ All errors follow Anthropic's error format:
 }
 ```
 
-**Error Types:**
 | Status Code | Error Type              |
 | ----------- | ----------------------- |
 | 400         | `invalid_request_error` |
@@ -154,39 +157,37 @@ All errors follow Anthropic's error format:
 
 ---
 
-## Configuration Types
+## Configuration type
 
 ```typescript
 interface AdapterConfig {
-  baseUrl: string;    // OpenAI-compatible API base URL
-  apiKey: string;     // API key for authentication
+  baseUrl: string;
+  apiKey: string;
   models: {
-    opus: string;     // Model for Claude Opus requests
-    sonnet: string;   // Model for Claude Sonnet requests
-    haiku: string;    // Model for Claude Haiku requests
+    opus: string;
+    sonnet: string;
+    haiku: string;
   };
 }
 ```
 
 ---
 
-## Example Usage
+## Example usage
 
 ```typescript
-import { createServer } from 'claude-adapter';
+import { createServer } from 'claude-responses-adapter';
 
 const config = {
   baseUrl: 'https://api.openai.com/v1',
   apiKey: process.env.OPENAI_API_KEY,
   models: {
-    opus: 'gpt-4-turbo',
-    sonnet: 'gpt-4',
-    haiku: 'gpt-3.5-turbo',
-  },
+    opus: 'gpt-5.2-codex-max',
+    sonnet: 'gpt-5.2-codex',
+    haiku: 'gpt-5-mini'
+  }
 };
 
 const server = createServer(config);
 await server.start(3080);
-
-// Server now accepts Anthropic API requests at http://localhost:3080
 ```

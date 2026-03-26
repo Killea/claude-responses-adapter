@@ -1,7 +1,7 @@
 {
   "name": "claude-responses-adapter",
   "version": "2.1.0",
-  "description": "Proxy to convert Anthropic Messages API requests to Responses API format for Claude-compatible clients",
+  "description": "Responses API proxy that bridges Claude-compatible clients to OpenAI-compatible providers",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -23,31 +23,28 @@
   ],
   "keywords": [
     "claude",
-    "claude-code-adapter",
-    "openai-to-claude",
-    "openai",
-    "anthropic",
-    "proxy",
-    "claude-adapter",
-    "api",
     "claude-code",
+    "responses-api",
+    "anthropic-messages",
+    "openai-compatible",
+    "proxy",
+    "adapter",
+    "protocol-bridge",
     "llm",
     "ai"
   ],
   "author": {
-    "name": "Shanto Islam",
-    "email": "shantoislamdev@gmail.com",
-    "url": "https://shantoislamdev.web.app/"
+    "name": "Killea"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shantoislamdev/claude-adapter.git"
+    "url": "git+https://github.com/Killea/claude-responses-adapter.git"
   },
   "bugs": {
-    "url": "https://github.com/shantoislamdev/claude-adapter/issues"
+    "url": "https://github.com/Killea/claude-responses-adapter/issues"
   },
-  "homepage": "https://claude-adapter.pages.dev/",
+  "homepage": "https://github.com/Killea/claude-responses-adapter",
   "dependencies": {
     "@anthropic-ai/sdk": "0.71.2",
     "chalk": "^4.1.2",

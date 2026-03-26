@@ -1,56 +1,67 @@
 <div align="center">
 
-# Claude Adapter
+# claude-responses-adapter
 
-![Claude Adapter Logo](assets/banner.png)
+![claude-responses-adapter banner](assets/banner.png)
 
-**Adapt any model for Claude Code**
+**Bridge Claude-compatible clients to Responses API providers**
 
-[![npm version](https://img.shields.io/npm/v/claude-adapter.svg)](https://www.npmjs.com/package/claude-adapter)
-[![codecov](https://codecov.io/gh/shantoislamdev/claude-adapter/graph/badge.svg)](https://codecov.io/gh/shantoislamdev/claude-adapter)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/node/v/claude-adapter.svg)](https://nodejs.org)
+[![Node.js Version](https://img.shields.io/node/v/claude-responses-adapter.svg)](https://nodejs.org)
 
+[Overview](#overview) •
 [Getting Started](#getting-started) •
-[Installation](#installation) •
 [Configuration](#configuration) •
 [API Reference](#api-reference) •
-[Contributing](#contributing)
+[Development](#development)
 
 </div>
 
 ---
 
 ## Overview
-Unlock the full potential of Claude Code using **Claude Adapter**S. It seamlessly connects Anthropic's powerful CLI to DeepSeek, GPT-Codex, Grok, and any OpenAI-compatible provider.
 
-This adapter effectively "tricks" Claude Code into communicating with models it was not natively designed to support, handling all necessary protocol translations, header modifications, and payload restructuring in real-time.
+`claude-responses-adapter` is a local proxy that accepts Claude / Anthropic-compatible requests and forwards them to OpenAI-compatible or Responses-style providers.
 
-### Key Features
+Its purpose is narrower than the original `claude-adapter` project: this repository is focused on protocol bridging for Claude-compatible clients, especially where request/response shape, streaming, and tool calling need translation before reaching the upstream provider.
 
-- 🔄 **Protocol Translation Layer** — Implements a robust bi-directional conversion engine that maps Anthropic's message format to OpenAI's chat completion schema on the fly.
-- 🌊 **Server-Sent Events (SSE) Streaming** — Provides full support for real-time response streaming, ensuring that the interactive feel of Claude Code is preserved even when backend by different models.
-- 🛠️ **Tool Invocation Compatibility** — seamlessly translates tool definitions and function call requests, allowing complex agentic workflows to function correctly across model boundaries.
-- ⚡ **Zero-Configuration Initialization** — Features an interactive CLI setup wizard that automates the generation of configuration files and environment variables.
-- 🔌 **Transparent Proxying** — Operates non-intrusively as a local service, requiring no modifications to the core Claude Code binary or internal logic.
+### Project origin
+
+This project is based on [shantoislamdev/claude-adapter](https://github.com/shantoislamdev/claude-adapter), but it has since diverged substantially.
+
+- The upstream project provided the original starting point and structure.
+- This repository now targets a different operational goal: bridging Claude-compatible clients to Responses API providers.
+- Protocol handling, startup UX, and project messaging have diverged enough that this repo should be treated as a separate project.
+
+### How this differs from the upstream project
+
+- **Different purpose** — this repo is positioned as a Responses API bridge, not a generic “adapt any model for Claude Code” layer.
+- **Different protocol emphasis** — the implementation is centered on translating Claude-compatible traffic into the upstream provider formats this project needs.
+- **Different runtime workflow** — the CLI is optimized around configuring and running a local bridge for Claude-compatible clients.
+
+### Key features
+
+- **Protocol translation** — maps Claude / Anthropic-compatible request structures into upstream provider formats.
+- **Streaming support** — preserves server-sent event behavior so Claude-compatible clients can stream responses through the bridge.
+- **Tool calling compatibility** — translates tool definitions and tool-use flows across protocol boundaries.
+- **Interactive setup** — provides a CLI configuration flow for base URL, API key, and model mapping.
+- **Local proxy operation** — runs as a local HTTP bridge without patching the Claude Code binary.
 
 ---
 
 ## Architecture
 
-The adapter operates as a local HTTP server that mimics the Anthropic API structure while forwarding requests to an upstream OpenAI-compatible target.
+The adapter runs as a local HTTP server between a Claude-compatible client and an upstream provider.
 
 ```
-┌─────────────┐      ┌─────────────────┐      ┌─────────────────┐
-│              ────▶                   ────▶                   │
-│ Claude Code │      │  Claude Adapter │      │ OpenAI Endpoint │
-│               ◀────                   ◀────                  │
-└─────────────┘      └─────────────────┘      └─────────────────┘
-   Anthropic              Converts                  OpenAI
-    Format                Formats                   Format
+┌────────────────────┐      ┌──────────────────────────┐      ┌────────────────────────────┐
+│ Claude-compatible  │ ───▶ │ claude-responses-adapter │ ───▶ │ Responses / OpenAI-style   │
+│ client             │ ◀─── │ protocol bridge          │ ◀─── │ provider endpoint          │
+└────────────────────┘      └──────────────────────────┘      └────────────────────────────┘
+   Claude/Anthropic            Request + response mapping         Upstream provider protocol
 ```
 
-When Claude Code initiates a request, **Claude Adapter** intercepts it, transforms the payload (including system prompts, message history, and tool definitions) into a format compliant with the OpenAI specification, and dispatches it to the configured backend (e.g., OpenAI, Grok, or a local inference server). The response is then captured, re-serialized into the Anthropic message format, and returned to the client.
+When the client sends a Claude-compatible request, `claude-responses-adapter` intercepts it, transforms the payload into the configured upstream format, forwards it to the provider, then converts the response back into the Claude-compatible format expected by the client.
 
 ---
 
@@ -58,70 +69,63 @@ When Claude Code initiates a request, **Claude Adapter** intercepts it, transfor
 
 ### Prerequisites
 
-- **Runtime Environment**: Node.js Version 20.0.0 or higher is required to execute the adapter.
-- **API Access**: A valid API key for an OpenAI-compatible service (e.g., OpenAI, DeepSeek, XAI).
+- **Node.js**: version 20 or higher
+- **API access**: an API key for a supported upstream provider
 
 ### Installation
 
-To install the adapter globally on your system, execute the following command:
-
 ```bash
-npm install -g claude-adapter
+npm install -g claude-responses-adapter
 ```
 
-### Quick Start
+### Quick start
 
-1. **Initialize the Service:**
-   Launch the adapter's interactive setup utility:
+1. Start the interactive setup:
    ```bash
-   claude-adapter
+   claude-responses-adapter
    ```
 
-2. **Configuration Wizard:**
-   The CLI will guide you through the necessary configuration steps:
-   - **Base URL**: Enter the endpoint URL of your compatible provider.
-   - **Authentication**: Securely input your API key.
-   - **Model Mapping**: Define which OpenAI-compatible models should be aliased to Claude's internal identifiers (`opus`, `sonnet`, `haiku`).
+2. Provide the required configuration:
+   - **Base URL** for your upstream provider
+   - **API key**
+   - **Model mapping** for `opus`, `sonnet`, and `haiku`
 
-3. **Operational State:**
-   Once configured, the adapter will start a local proxy server. Claude Code is automatically reconfigured to route traffic through this local endpoint.
+3. The adapter starts a local bridge server and, unless disabled, updates Claude settings to point to that local endpoint.
 
 ---
 
 ## Configuration
 
-### CLI Options
+### CLI options
 
-The CLI accepts several flags to customize runtime behavior:
+| Option                 | Description                               | Default |
+| ---------------------- | ----------------------------------------- | ------- |
+| `-p, --port <port>`    | Port for the local bridge server          | `3080`  |
+| `-r, --reconfigure`    | Force the configuration wizard            | `false` |
+| `--no-claude-settings` | Skip updating Claude Code settings files  | `false` |
+| `-V, --version`        | Show version information                  | —       |
+| `-h, --help`           | Show available commands and options       | —       |
 
-| Option                 | Description                                   | Default |
-| ---------------------- | --------------------------------------------- | ------- |
-| `-p, --port <port>`    | Specifies the port for the local proxy server | `3080`  |
-| `-r, --reconfigure`    | Forces the specific reconfiguration workflow  | `false` |
-| `--no-claude-settings` | Skip updating Claude Code settings files      | `false` |
-| `-V, --version`        | Output the current version information        | —       |
-| `-h, --help`           | Display available commands and options        | —       |
+### Model mapping
 
-### Model Mapping Configuration
+The adapter maps Claude-facing model tiers to upstream models you choose.
 
-The core of the adapter's flexibility lies in its ability to map Claude's expected model tiers to arbitrary upstream models. This allows you to substitute, for example, a specialized coding model for `sonnet` or a high-speed inference model for `haiku`.
-
-| Claude Tier | Intended Use Case | Example Mapping Strategy       |
-| ----------- | ----------------- | ------------------------------ |
-| `opus`      | Complex reasoning | `gpt-5.2-codex`, `glm-4.7`     |
-| `sonnet`    | Balanced tasks    | `deepseek-3.2`, `minimax-m2.1` |
-| `haiku`     | Low-latency ops   | `gpt-5-mini`, `gpt-oss-120b`   |
+| Claude Tier | Typical role        | Example mapping                |
+| ----------- | ------------------- | ------------------------------ |
+| `opus`      | heavy reasoning     | `gpt-5.2-codex-max`            |
+| `sonnet`    | balanced workloads  | `gpt-5.2-codex`                |
+| `haiku`     | lower-latency tasks | `gpt-5-mini`                   |
 
 ---
 
 ## API Reference
 
-### Programmatic Integration
+### Programmatic integration
 
-For users wishing to embed the adapter within larger Node.js applications, the package exports its core server factory:
+The package exports its server factory and conversion helpers:
 
 ```typescript
-import { createServer, AdapterConfig } from 'claude-adapter';
+import { createServer, AdapterConfig } from 'claude-responses-adapter';
 
 const config: AdapterConfig = {
   baseUrl: 'https://api.openai.com/v1',
@@ -133,91 +137,80 @@ const config: AdapterConfig = {
   }
 };
 
-// Instantiate the proxy server
 const server = createServer(config);
-
-// Start listening on a specific port
 await server.start(3080);
-
-console.log('Proxy running on http://localhost:3080');
 ```
 
-> **Note**: While the adapter exposes this programmatic interface, its primary design intent is to function as a standalone CLI tool for Claude Code users.
-
-### Transformation Utilities
-
-The underlying conversion logic is also exposed as standalone functions for custom implementations:
+### Conversion utilities
 
 ```typescript
-import { 
+import {
   convertRequestToOpenAI,
-  convertResponseToAnthropic 
-} from 'claude-adapter';
+  convertResponseToAnthropic
+} from 'claude-responses-adapter';
 
-// Transform an incoming Anthropic request payload
-const openaiRequest = convertRequestToOpenAI(anthropicRequest, 'target-model-name');
-
-// Transform an OpenAI response payload back to Anthropic format
-const anthropicResponse = convertResponseToAnthropic(openaiResponse, 'original-model-name');
+const upstreamRequest = convertRequestToOpenAI(anthropicRequest, 'target-model-name');
+const anthropicResponse = convertResponseToAnthropic(upstreamResponse, 'original-model-name');
 ```
 
-For detailed type definitions and function signatures, please consult the [API Documentation](./docs/API.md).
+For endpoint-level details, see [docs/API.md](./docs/API.md).
 
 ---
 
 ## Supported Features
 
-| Feature Capability    | Support Status | Implementation Notes       |
-| --------------------- | :------------: | -------------------------- |
-| Text Generation       |       ✅        | Full fidelity              |
-| System Prompts        |       ✅        | Mapped to 'system' role    |
-| Real-time Streaming   |       ✅        | SSE event translation      |
-| Tool/Function Calling |       ✅        | Bidirectional mapping      |
-| Context Preservation  |       ✅        | Multi-turn history support |
-| Token Limits          |       ✅        | Parameter pass-through     |
-| Sampling (Temp/Top P) |       ✅        | Parameter pass-through     |
-| Stop Sequences        |       ✅        | Mapped to API equivalent   |
-| Multimodal (Vision)   |       🔜        | Implementation roadmap     |
+| Feature Capability    | Support Status | Implementation Notes                  |
+| --------------------- | :------------: | ------------------------------------- |
+| Text generation       |       ✅        | Claude-compatible response mapping    |
+| System prompts        |       ✅        | Translated to upstream request format |
+| Real-time streaming   |       ✅        | SSE translation                       |
+| Tool/function calling |       ✅        | Protocol-aware mapping                |
+| Context preservation  |       ✅        | Multi-turn history support            |
+| Token controls        |       ✅        | Parameter forwarding                  |
+| Stop sequences        |       ✅        | Translated where supported            |
+| Multimodal inputs     |       🔜        | Not fully implemented                 |
 
 ---
 
 ## Troubleshooting
 
-### Common issues and Resolutions
-
 <details>
 <summary><strong>EADDRINUSE: Port collision</strong></summary>
 
-If the default port `3080` is occupied by another process, launch the adapter on an alternative port:
+If port `3080` is already in use, start the bridge on another port:
+
 ```bash
-claude-adapter --port 3000
+claude-responses-adapter --port 3000
 ```
 </details>
 
 <details>
-<summary><strong>Authentication Failures</strong></summary>
+<summary><strong>Authentication failures</strong></summary>
 
-If you encounter 401 errors, your API key may be invalid or expired. Rerun the configuration wizard:
+If the upstream provider returns `401`, rerun the configuration wizard:
+
 ```bash
-claude-adapter --reconfigure
+claude-responses-adapter --reconfigure
 ```
 </details>
 
 <details>
-<summary><strong>Connection Refused</strong></summary>
+<summary><strong>Connection refused</strong></summary>
 
-Ensure the proxy server is running in a terminal window. Check your `~/.claude/settings.json` to verify the `ANTHROPIC_BASE_URL` is pointing to the correct local address (e.g., `http://localhost:3080`).
+Make sure the local bridge is running, then verify `ANTHROPIC_BASE_URL` points to the correct local address in `~/.claude/settings.json`.
 </details>
 
 <details>
-<summary><strong>Manual Configuration Mode</strong></summary>
+<summary><strong>Manual configuration mode</strong></summary>
 
-To run the adapter without modifying Claude Code's settings, use `--no-claude-settings`:
+To avoid modifying Claude settings automatically:
+
 ```bash
-claude-adapter --no-claude-settings
+claude-responses-adapter --no-claude-settings
 ```
 
-Then manually set environment variables in `~/.claude/settings.json`:
+Then set the required environment variables yourself in `~/.claude/settings.json`:
+
 ```json
 {
   "env": {
@@ -232,42 +225,29 @@ Then manually set environment variables in `~/.claude/settings.json`:
 
 ## Development
 
-To contribute to the codebase or build from source:
-
 ```bash
-# Clone the repository
-git clone https://github.com/shantoislamdev/claude-adapter.git
-cd claude-adapter
-
-# Install dependencies
+git clone https://github.com/Killea/claude-responses-adapter.git
+cd claude-responses-adapter
 npm install
-
-# Start the development server with hot-reload
 npm run dev
-
-# Execute the test suite
 npm test
-
-# Compile TypeScript to JavaScript for production
 npm run build
 ```
 
-Please refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for comprehensive contribution guidelines.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution guidelines.
 
 ---
 
 ## License
 
-This project is licensed under the **MIT License**. For full terms and conditions, please see the [LICENSE](./LICENSE) file.
+This project is licensed under the **MIT License**. See [LICENSE](./LICENSE).
 
 ---
 
 <div align="center">
 
-**[Report Bug](https://github.com/shantoislamdev/claude-adapter/issues)** •
-**[Request Feature](https://github.com/shantoislamdev/claude-adapter/issues)** •
-**[Documentation](./docs/)**
-
-Made with ❤️ by [Shanto Islam](https://shantoislamdev.web.app/)
+**[Issues](https://github.com/Killea/claude-responses-adapter/issues)** •
+**[Documentation](./docs/)** •
+**[Upstream project](https://github.com/shantoislamdev/claude-adapter)**
 
 </div>
