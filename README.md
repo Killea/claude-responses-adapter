@@ -4,7 +4,7 @@
 
 ![claude-responses-adapter banner](assets/banner.png)
 
-**A protocol bridge from Claude-compatible clients to Responses API backends**
+**A protocol bridge from Claude-compatible clients to Responses API and Codex-compatible backends**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/node/v/claude-responses-adapter.svg)](https://nodejs.org)
@@ -21,7 +21,9 @@
 
 ## Overview
 
-`claude-responses-adapter` is a local protocol bridge. It accepts Claude / Anthropic-compatible traffic on one side and forwards translated requests to Responses API or OpenAI-compatible backends on the other.
+`claude-responses-adapter` is a local protocol bridge. It accepts Claude / Anthropic-compatible traffic on one side and forwards translated requests to Responses API, OpenAI-compatible backends, or third-party APIs that expose Codex-capable models on the other.
+
+In practice, that means you can use this adapter not only with official OpenAI endpoints, but also with self-hosted or commercial third-party providers as long as they offer a compatible API surface and the Codex model IDs you want to map.
 
 This repository should not be read as a drop-in continuation of the original `claude-adapter` project. It started from that codebase, but the project goal here is more specific: run Claude-compatible clients against a different upstream protocol surface, while preserving the parts that matter in practice such as streaming, tool use, and model aliasing.
 
@@ -33,6 +35,7 @@ This repository should not be read as a drop-in continuation of the original `cl
 - A local bridge for **Claude-compatible clients**
 - A translator for **request / response / streaming / tool-calling** semantics
 - A way to point Claude-oriented tooling at **Responses-style upstream providers**
+- A way to connect **Claude Code workflows to third-party Codex APIs** through a local compatible endpoint
 
 ### What this project is not
 
@@ -53,6 +56,7 @@ This repository should not be read as a drop-in continuation of the original `cl
 - **Tool calling compatibility** — translates tool definitions and tool-use flows across protocol boundaries.
 - **Interactive setup** — provides a CLI configuration flow for base URL, API key, and model mapping.
 - **Local proxy operation** — runs as a local HTTP bridge without patching the Claude Code binary.
+- **Third-party Codex API support** — works with compatible upstream providers that expose Codex-family models via Responses-style or OpenAI-compatible APIs.
 
 ---
 
@@ -63,7 +67,7 @@ The adapter runs as a local HTTP bridge between a Claude-compatible client and a
 ```
 ┌────────────────────┐      ┌──────────────────────────┐      ┌────────────────────────────┐
 │ Claude-compatible  │ ───▶ │ claude-responses-adapter │ ───▶ │ Responses / OpenAI-style   │
-│ client             │ ◀─── │ protocol bridge          │ ◀─── │ provider endpoint          │
+│ client             │ ◀─── │ protocol bridge          │ ◀─── │ or third-party Codex API   │
 └────────────────────┘      └──────────────────────────┘      └────────────────────────────┘
    Claude/Anthropic            Request + response mapping         Upstream provider protocol
 ```
@@ -97,7 +101,28 @@ npm install -g claude-responses-adapter
    - **API key**
    - **Model mapping** for `opus`, `sonnet`, and `haiku`
 
-3. The adapter starts a local bridge server and, unless disabled, updates Claude settings so Claude-compatible tooling targets that local endpoint.
+3. If you are using a third-party Codex API, enter that provider's compatible base URL and map each Claude tier to the Codex model ID exposed by that provider.
+
+4. The adapter starts a local bridge server and, unless disabled, updates Claude settings so Claude-compatible tooling targets that local endpoint.
+
+### Using third-party Codex APIs
+
+`claude-responses-adapter` can be used with third-party providers, API gateways, or self-hosted services that expose Codex-family models through a compatible upstream API.
+
+Typical setup looks like this:
+
+- Set `baseUrl` to the third-party provider endpoint, not necessarily `https://api.openai.com/v1`
+- Use the provider-issued API key
+- Map Claude tiers such as `opus`, `sonnet`, and `haiku` to the Codex model IDs available from that provider
+- Keep in mind that exact support for tools, streaming, and multimodal input depends on the upstream implementation
+
+Example mappings for a Codex-oriented provider:
+
+| Claude Tier | Example third-party mapping |
+| ----------- | --------------------------- |
+| `opus`      | `gpt-5.2-codex-max`         |
+| `sonnet`    | `gpt-5.2-codex`             |
+| `haiku`     | `gpt-5-mini`                |
 
 ---
 
@@ -122,6 +147,8 @@ The adapter maps Claude-facing model tiers to upstream models you choose.
 | `opus`      | heavy reasoning     | `gpt-5.2-codex-max`            |
 | `sonnet`    | balanced workloads  | `gpt-5.2-codex`                |
 | `haiku`     | lower-latency tasks | `gpt-5-mini`                   |
+
+This model mapping is also how you enable third-party Codex APIs: point `baseUrl` at the provider you want, then enter that provider's Codex model names here.
 
 ---
 
