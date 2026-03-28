@@ -425,4 +425,89 @@ describe('Request Handlers', () => {
 
         expect(streamXmlOpenAIToAnthropic).toHaveBeenCalled();
     });
+
+    it('retries the direct responses endpoint when /v1/responses returns 404', async () => {
+        global.fetch = jest.fn()
+            .mockResolvedValueOnce(new Response('404 page not found', { status: 404 }))
+            .mockResolvedValueOnce(
+                new Response(JSON.stringify({
+                    id: 'resp_fallback',
+                    model: 'gpt-4.1-mini',
+                    output: [
+                        {
+                            type: 'message',
+                            role: 'assistant',
+                            content: [{ type: 'output_text', text: 'Recovered via fallback' }],
+                        },
+                    ],
+                    usage: { input_tokens: 4, output_tokens: 3 },
+                }), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            ) as unknown as typeof fetch;
+
+        const handler = createMessagesHandler({
+            ...baseConfig,
+            baseUrl: 'https://example.com/openai',
+            toolFormat: 'native',
+        });
+        const { reply, getBody } = createMockReply();
+
+        await handler({
+            body: {
+                model: 'claude-sonnet-4-5',
+                max_tokens: 128,
+                messages: [{ role: 'user', content: 'Hello' }],
+                stream: false,
+            },
+        } as any, reply);
+
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe('https://example.com/openai/v1/responses');
+        expect((global.fetch as jest.Mock).mock.calls[1][0]).toBe('https://example.com/openai/responses');
+        expect(getBody()).toEqual(expect.objectContaining({
+            type: 'message',
+            model: 'claude-sonnet-4-5',
+        }));
+    });
+
+    it('uses a fully qualified responses endpoint as-is', async () => {
+        global.fetch = jest.fn().mockResolvedValue(
+            new Response(JSON.stringify({
+                id: 'resp_direct',
+                model: 'gpt-4.1-mini',
+                output: [
+                    {
+                        type: 'message',
+                        role: 'assistant',
+                        content: [{ type: 'output_text', text: 'Direct endpoint works' }],
+                    },
+                ],
+                usage: { input_tokens: 4, output_tokens: 3 },
+            }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        ) as unknown as typeof fetch;
+
+        const handler = createMessagesHandler({
+            ...baseConfig,
+            baseUrl: 'https://example.com/custom/responses',
+            toolFormat: 'native',
+        });
+        const { reply } = createMockReply();
+
+        await handler({
+            body: {
+                model: 'claude-sonnet-4-5',
+                max_tokens: 128,
+                messages: [{ role: 'user', content: 'Hello' }],
+                stream: false,
+            },
+        } as any, reply);
+
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe('https://example.com/custom/responses');
+    });
 });

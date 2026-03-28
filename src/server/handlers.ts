@@ -20,9 +20,18 @@ function generateRequestId(): string {
     return `req_${timestamp}_${counter}`;
 }
 
-function buildUpstreamUrl(baseUrl: string): string {
+function buildUpstreamUrls(baseUrl: string): string[] {
     const normalized = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-    return normalized.endsWith('/v1') ? `${normalized}/responses` : `${normalized}/v1/responses`;
+
+    if (normalized.endsWith('/responses')) {
+        return [normalized];
+    }
+
+    if (normalized.endsWith('/v1')) {
+        return [`${normalized}/responses`];
+    }
+
+    return [`${normalized}/v1/responses`, `${normalized}/responses`];
 }
 
 function getToolFormat(config: AdapterConfig): 'native' | 'xml' {
@@ -117,14 +126,31 @@ async function fetchResponses(
     config: AdapterConfig,
     requestBody: Record<string, unknown>
 ): Promise<Response> {
-    return fetch(buildUpstreamUrl(config.baseUrl), {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${config.apiKey}`,
-        },
-        body: JSON.stringify(requestBody),
-    });
+    const upstreamUrls = buildUpstreamUrls(config.baseUrl);
+    let lastResponse: Response | null = null;
+
+    for (const url of upstreamUrls) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${config.apiKey}`,
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (response.status !== 404) {
+            return response;
+        }
+
+        lastResponse = response;
+    }
+
+    if (lastResponse) {
+        return lastResponse;
+    }
+
+    throw createStatusError('No upstream Responses endpoint candidates were available', 502);
 }
 
 async function streamUpstreamToAnthropic(
